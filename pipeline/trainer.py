@@ -1,26 +1,38 @@
-import os
-import joblib
-from utils.preprocessing import StandardScaler
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+from utils.preprocessing import Preprocessing
+from core.dataset import Dataset
 
 
 class Trainer:
-    def __init__(self, model, dataset, scaler=None):
+    def __init__(self, model, data_path):
         self.model = model
-        self.dataset = dataset
-        self.scaler = scaler or StandardScaler()
-        self.X_test = None
-        self.y_test = None
+        self.data_path = data_path
+        self.scaler = StandardScaler()
 
     def train(self):
-        X_train, X_test, y_train, y_test = self.dataset.split()
-        X_train = self.scaler.fit_transform(X_train)      # fit sur le train seulement
-        self.X_test = self.scaler.transform(X_test)
-        self.y_test = y_test
-        self.model.fit(X_train, y_train)
-        return self.model
+        preprocessing = Preprocessing(self.data_path)
+        X, y = preprocessing.load_data()
 
-    def save(self, path):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        joblib.dump({"model": self.model,
-                     "scaler": self.scaler,
-                     "features": self.dataset.features}, path)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=0.25,
+            random_state=42,
+            stratify=y
+        )
+
+        # Normaliser les caractéristiques
+        X_train = self.scaler.fit_transform(X_train)
+        X_test = self.scaler.transform(X_test)
+
+        # Créer le Dataset d'entraînement
+        train_dataset = Dataset(X_train, y_train)
+        X_train, y_train = train_dataset.get_data()
+
+        # Entraîner le modèle
+        self.model.fit(X_train, y_train)
+
+        return self.model, X_test, y_test
