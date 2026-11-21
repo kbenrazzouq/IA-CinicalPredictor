@@ -4,8 +4,11 @@ from core.model import Model
 
 
 class KNN(Model):
+    """Model des k plus proches voisins (classification binaire 0/1)."""
 
     def __init__(self, k=5):
+        if not isinstance(k, int) or k <= 0:
+            raise ValueError("k doit être un entier strictement positif.")
         self.k = k
         self.X_train = None
         self.y_train = None
@@ -17,6 +20,9 @@ class KNN(Model):
 
     def predict(self, X):
         """Prédire les probabilités de la classe 1."""
+        if self.X_train is None:
+            raise RuntimeError("Le modèle doit être entraîné avec fit() avant predict().")
+
         X = np.array(X)
         probabilities = []
 
